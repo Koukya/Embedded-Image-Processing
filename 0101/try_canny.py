@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 from paddleocr import PaddleOCR
-
+import re
 
 def pre_image(img):
     img = cv2.resize(img, (1024 , 800))
@@ -31,6 +31,14 @@ def initialize_ocr():
 
     return PaddleOCR(use_angle_cls=True, lang='en', show_log=False)
 
+def contains_letters_and_numbers(s):
+    # 判斷是否同時包含英文字符和數字
+    has_letters = bool(re.search(r'[A-Z]', s))  # 是否包含英文字母
+    has_numbers = bool(re.search(r'\d', s))       # 是否包含數字
+    if has_letters and has_numbers == 1:
+        return 1
+    return 0
+
 def recognize_license_plate(image, ocr, x, y, w, h):
 
     plate_region = image[y:y+h, x:x+w]
@@ -43,7 +51,8 @@ def recognize_license_plate(image, ocr, x, y, w, h):
         text = text.replace('O' , '0')
         text = text.replace('$' , 'S')
         text = text.replace('.' , '-')
-        return text, confidence
+        if contains_letters_and_numbers(text) == 1:
+            return text, confidence
     return None, 0
 
 def resize(image , weight , height):
@@ -69,7 +78,7 @@ def enhance_and_detect_with_ocr(image_path):
         print("無法讀取圖像，請檢查路徑！")
         return
     
-    image = resize(original_image, 1024, 800) #Resize image
+    image = resize(original_image, 1080, 1080) #Resize image
     result_image = image.copy() 
     
     contrast = image_contrast(image , 1.3 , 11) # Contrast improve
@@ -96,7 +105,7 @@ def enhance_and_detect_with_ocr(image_path):
         area = w * h
         aspect_ratio = w / float(h)
         
-        if 1000 < area < 200000 and 1.3 < aspect_ratio < 6.0 and h > 50:
+        if 1000 < area < 200000 and 1.3 < aspect_ratio < 7.0 and h > 50:
             plate_text, confidence = recognize_license_plate(image, ocr, x, y, w, h)
             
             if plate_text:
@@ -124,5 +133,5 @@ def enhance_and_detect_with_ocr(image_path):
     cv2.destroyAllWindows()
 
 if __name__ == "__main__":
-    image_path = "pic/pic5.jpg"
+    image_path = "pic/pic7.jpg" 
     enhance_and_detect_with_ocr(image_path)
