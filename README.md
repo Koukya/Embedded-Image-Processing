@@ -48,3 +48,7 @@ frame_count += 1
 # 七、結論
 # 八、參考資料
 https://github.com/LonelyCaesar/OpenCV-license-plate-recognition  
+https://blog.csdn.net/lsb2002/article/details/134415492  
+https://hackmd.io/@CynthiaChuang/Taiwan-License-Plate-Rules-for-LPR  
+https://hackmd.io/@kenchick/SyxT90UPd  
+https://medium.com/jia-hong/%E5%9F%BA%E6%96%BCopencv%E4%B9%8B%E8%BB%8A%E7%89%8C%E8%BE%A8%E8%AD%98-b14ca20b1803  
