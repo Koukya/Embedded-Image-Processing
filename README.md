@@ -43,6 +43,53 @@ frame_count += 1
             frame_path = os.path.join(output_dir, f"frame_{frame_count}.jpg")
             cv2.imwrite(frame_path, frame)
 ```
+圖片處理，包含調整對比、HSV找白色區域、應用形態學以及Canny
+```
+contrast = cv2.convertScaleAbs(image, alpha=1.3, beta=11)  # 調整對比
+hsv = cv2.cvtColor(contrast, cv2.COLOR_BGR2HSV)
+white_mask = cv2.inRange(hsv, np.array([0, 0, 200]), np.array([180, 50, 255]))
+kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (17, 5))
+closed_mask = cv2.morphologyEx(white_mask, cv2.MORPH_CLOSE, kernel)
+canny_image = cv2.Canny(closed_mask, 30, 200)
+```
+區域判斷並記錄區域內最長的文字(提高辨識成功率)
+```
+contours, _ = cv2.findContours(canny_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    for cnt in contours:
+        x, y, w, h = cv2.boundingRect(cnt)
+        area = w * h
+        aspect_ratio = w / float(h)
+        
+        if 1000 < area < 200000 and 1.3 < aspect_ratio < 3.0 and h > 50:
+            text, confidence = recognize_license_plate(image, ocr, x, y, w, h)
+            if text and len(text) > len(detected_text):  # 更新最長的文字
+                detected_text = text
+                max_confidence = confidence
+    
+    return detected_text, max_confidence
+```
+辨識文字方法以及針對車牌邏輯做出文字修正
+```
+def recognize_license_plate(image, ocr, x, y, w, h):
+    """識別車牌區域內的文字"""
+    plate_region = image[y:y+h, x:x+w]
+    result = ocr.ocr(plate_region, cls=True)
+    
+    if result and result[0]:
+        text = result[0][0][1][0]
+        confidence = result[0][0][1][1]
+        # 修正常見錯誤字符
+        text = text.replace('I', '1').replace('O', '0').replace('$', 'S').replace('.', '-')
+        if contains_letters_and_numbers(text):
+            return text, confidence
+    return None, 0
+
+def contains_letters_and_numbers(s):
+    """判斷是否同時包含英文字符和數字"""
+    has_letters = bool(re.search(r'[A-Z]', s))
+    has_numbers = bool(re.search(r'\d', s))
+    return has_letters and has_numbers
+```
 
 # 六、成果展示
 # 七、結論
