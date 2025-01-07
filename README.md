@@ -47,3 +47,4 @@ frame_count += 1
 # 六、成果展示
 # 七、結論
 # 八、參考資料
+https://github.com/LonelyCaesar/OpenCV-license-plate-recognition  
