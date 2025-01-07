@@ -34,7 +34,15 @@ if not os.path.exists(output_dir):
 
 output_dir = "video_frames"
 ```
-    
+圖片提取方式
+```
+frame_count = 0
+
+frame_count += 1
+        if frame_count % 6 == 0:  # 每 6 幀提取一幀
+            frame_path = os.path.join(output_dir, f"frame_{frame_count}.jpg")
+            cv2.imwrite(frame_path, frame)
+```
 
 # 六、成果展示
 # 七、結論
