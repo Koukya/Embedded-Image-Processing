@@ -7,15 +7,18 @@ import tkinter as tk
 from tkinter import filedialog
 from PIL import Image, ImageTk
 
+
 def initialize_ocr():
     """初始化 OCR 引擎"""
     return PaddleOCR(use_angle_cls=True, lang='en', show_log=False)
+
 
 def contains_letters_and_numbers(s):
     """判斷是否同時包含英文字符和數字"""
     has_letters = bool(re.search(r'[A-Z]', s))
     has_numbers = bool(re.search(r'\d', s))
     return has_letters and has_numbers
+
 
 def recognize_license_plate(image, ocr, x, y, w, h):
     """識別車牌區域內的文字"""
@@ -29,6 +32,7 @@ def recognize_license_plate(image, ocr, x, y, w, h):
         if contains_letters_and_numbers(text):
             return text, confidence
     return None, 0
+
 
 def enhance_and_detect_with_ocr(image, ocr):
     """增強圖像並檢測車牌"""
@@ -58,6 +62,7 @@ def enhance_and_detect_with_ocr(image, ocr):
 
     return detected_text, max_confidence, best_plate_image
 
+
 def process_video(video_path, ocr):
     """處理影片並選出最長的車牌結果"""
     cap = cv2.VideoCapture(video_path)
@@ -81,6 +86,7 @@ def process_video(video_path, ocr):
 
     cap.release()
     return max_text, max_confidence, best_plate_image
+
 
 def select_video():
     """讓使用者選擇影片並進行處理"""
@@ -109,23 +115,48 @@ def select_video():
                 image_label.config(image=photo)
                 image_label.image = photo
 
+            # 檢查右側列表是否存在相同車牌，存在則移除，否則新增
+            existing_plates = plate_listbox.get(0, tk.END)
+            if detected_text in existing_plates:
+                index = existing_plates.index(detected_text)
+                plate_listbox.delete(index)  # 移除該車牌
+            else:
+                plate_listbox.insert(tk.END, detected_text)
+
+
 if __name__ == "__main__":
     # 建立主視窗
     root = tk.Tk()
     root.title("車牌識別系統")
-    root.geometry("600x400")
+    root.geometry("800x400")
+
+    # 左側區域
+    left_frame = tk.Frame(root)
+    left_frame.pack(side=tk.LEFT, padx=10, pady=10)
 
     # 按鈕讓使用者選擇影片
-    select_button = tk.Button(root, text="選擇影片", command=select_video, font=("Arial", 14))
+    select_button = tk.Button(left_frame, text="選擇影片", command=select_video, font=("Arial", 14))
     select_button.pack(pady=20)
 
     # 顯示結果的 Label
-    result_label = tk.Label(root, text="車牌號碼將顯示於此", font=("Arial", 12), fg="blue")
+    result_label = tk.Label(left_frame, text="車牌號碼將顯示於此", font=("Arial", 12), fg="blue")
     result_label.pack(pady=20)
 
     # 顯示車牌圖片的 Label
-    image_label = tk.Label(root)
+    image_label = tk.Label(left_frame)
     image_label.pack(pady=20)
+
+    # 右側區域
+    right_frame = tk.Frame(root)
+    right_frame.pack(side=tk.RIGHT, padx=10, pady=10, fill=tk.Y)
+
+    # 車牌列表 Label
+    list_label = tk.Label(right_frame, text="已偵測車牌", font=("Arial", 14))
+    list_label.pack(pady=10)
+
+    # 車牌列表框
+    plate_listbox = tk.Listbox(right_frame, font=("Arial", 12), height=15, width=20)
+    plate_listbox.pack(pady=10)
 
     # 啟動主迴圈
     root.mainloop()
