@@ -46,7 +46,7 @@ frame_count += 1
 
 # 六、成果展示
 # 七、結論
-本次實作成功結合了OpenCV與OCR的銜接，透過一些前處理調整原圖後，選出可能是車牌的輪廓，再利用OCR來辨識輪廓內的文字，最後將所得到的結果禁行後處理(篩選規則內的車牌及多個車牌號碼裡最可能是的那一個)，並將結果顯示到Tkinter的視窗上 
+本次實作成功結合了OpenCV與OCR的銜接，透過一些前處理調整原圖後，選出可能是車牌的輪廓，再利用OCR來辨識輪廓內的文字，最後將所得到的結果進行後處理(篩選規則內的車牌及多個車牌號碼裡最可能是的那一個)，並將結果顯示到Tkinter的視窗上 
 # 八、參考資料
 https://github.com/LonelyCaesar/OpenCV-license-plate-recognition  
 https://blog.csdn.net/lsb2002/article/details/134415492  
