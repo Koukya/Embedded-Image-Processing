@@ -15,11 +15,11 @@
 ### 效能
 每次一張圖片，30FPS取五張圖片
 ### 介面
-1.顯示目前車牌圖片及號碼
+1.顯示目前車牌圖片及號碼  
 2.顯示目前車輛總數及剩餘位置
 ### 限制
-1.一次一張車牌
-2.中華民國車牌
+1.一次一張車牌  
+2.中華民國車牌  
 3.正面車牌(不用正前方)
 # 三、Breakdown
 ![image](https://github.com/user-attachments/assets/060c3bfd-656b-432b-90dc-a8296daf4b66)
@@ -90,7 +90,6 @@ def contains_letters_and_numbers(s):
     has_numbers = bool(re.search(r'\d', s))
     return has_letters and has_numbers
 ```
-
 # 六、成果展示
 # 七、結論
 本次實作成功結合了OpenCV與OCR的銜接，透過一些前處理調整原圖後，選出可能是車牌的輪廓，再利用OCR來辨識輪廓內的文字，最後將所得到的結果進行後處理(篩選規則內的車牌及多個車牌號碼裡最可能是的那一個)，並將結果顯示到Tkinter的視窗上 
