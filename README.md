@@ -91,6 +91,15 @@ def contains_letters_and_numbers(s):
     return has_letters and has_numbers
 ```
 # 六、成果展示
+### 介面
+![image](https://github.com/user-attachments/assets/e8d27f9f-9b3d-4ef4-bca3-be7445ef46a5)  
+### 辨識成功(模擬入場)
+![image](https://github.com/user-attachments/assets/744f19c6-91d2-4677-9810-4a8572095595)  
+### 無法辨識
+![image](https://github.com/user-attachments/assets/6f0bb705-ce20-4728-99b8-4578b1247917)  
+### 重複時取消(模擬離場)
+![image](https://github.com/user-attachments/assets/94b2dc7b-0741-4041-a829-0d579142663e)
+
 # 七、結論
 本次實作成功結合了OpenCV與OCR的銜接，透過一些前處理調整原圖後，選出可能是車牌的輪廓，再利用OCR來辨識輪廓內的文字，最後將所得到的結果進行後處理(篩選規則內的車牌及多個車牌號碼裡最可能是的那一個)，並將結果顯示到Tkinter的視窗上 
 # 八、參考資料
