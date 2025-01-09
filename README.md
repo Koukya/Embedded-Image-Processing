@@ -43,7 +43,7 @@ frame_count += 1
             frame_path = os.path.join(output_dir, f"frame_{frame_count}.jpg")
             cv2.imwrite(frame_path, frame)
 ```
-<vdieo src = "https://github.com/Koukya/Embedded-Image-Processing/blob/main/pic/video1.mp4"></video>
+<video src = "https://github.com/Koukya/Embedded-Image-Processing/blob/main/pic/video1.mp4"></video>
 圖片處理，包含調整對比、HSV找白色區域、應用形態學以及Canny
 ```
 contrast = cv2.convertScaleAbs(image, alpha=1.3, beta=11)  # 調整對比
