@@ -9,26 +9,25 @@ from PIL import Image, ImageTk
 
 
 def initialize_ocr():
-    """初始化 OCR 引擎"""
+
     return PaddleOCR(use_angle_cls=True, lang='en', show_log=False)
 
 
 def contains_letters_and_numbers(s):
-    """判斷是否同時包含英文字符和數字"""
+
     has_letters = bool(re.search(r'[A-Z]', s))
     has_numbers = bool(re.search(r'\d', s))
     return has_letters and has_numbers
 
 
 def recognize_license_plate(image, ocr, x, y, w, h):
-    """識別車牌區域內的文字"""
+
     plate_region = image[y:y + h, x:x + w]
     result = ocr.ocr(plate_region, cls=True)
 
     if result and result[0]:
         text = result[0][0][1][0]
         confidence = result[0][0][1][1]
-        # 修正常見錯誤字符
         text = text.replace('I', '1').replace('O', '0').replace('$', 'S').replace('.', '-')
         if contains_letters_and_numbers(text):
             return text, confidence
@@ -36,11 +35,13 @@ def recognize_license_plate(image, ocr, x, y, w, h):
 
 
 def enhance_and_detect_with_ocr(image, ocr):
-    """增強圖像並檢測車牌"""
+
     detected_text = ""
     max_confidence = 0
+    best_plate_image = None
 
-    contrast = cv2.convertScaleAbs(image, alpha=1.3, beta=11)  # 調整對比
+    image = cv2.resize(image, (1080, 1080))
+    contrast = cv2.convertScaleAbs(image, alpha=1.3, beta=11)
     hsv = cv2.cvtColor(contrast, cv2.COLOR_BGR2HSV)
     white_mask = cv2.inRange(hsv, np.array([0, 0, 200]), np.array([180, 50, 255]))
     kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (17, 5))
@@ -55,26 +56,21 @@ def enhance_and_detect_with_ocr(image, ocr):
 
         if 1000 < area < 200000 and 1.3 < aspect_ratio < 3.0 and h > 50:
             text, confidence = recognize_license_plate(image, ocr, x, y, w, h)
-            if text and len(text) > len(detected_text):  # 更新最長的文字
-                cropped_image = image[y:y + h, x:x + w]
-                cropped_path = f'cropped/crop_{x}_{y}.jpg'
-                cv2.imwrite(cropped_path, cropped_image)
-                detected_text = text
+            if text and confidence > max_confidence:
                 max_confidence = confidence
+                detected_text = text
+                best_plate_image = image[y:y + h, x:x + w]
 
-    return detected_text, max_confidence
+    return detected_text, max_confidence, best_plate_image
 
 
-def process_video(video_path, output_dir, ocr):
-    """處理單一影片並選出最長的車牌結果"""
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
+def process_video(video_path, ocr):
 
     cap = cv2.VideoCapture(video_path)
     frame_count = 0
     max_text = ""
     max_confidence = 0
-    cropped_files = []
+    best_plate_image = None
 
     while True:
         ret, frame = cap.read()
@@ -82,69 +78,111 @@ def process_video(video_path, output_dir, ocr):
             break
 
         frame_count += 1
-        if frame_count % 30 == 0:  # 每 30 幀提取一幀
-            text, confidence = enhance_and_detect_with_ocr(frame, ocr)
-            if text and len(text) > len(max_text):  # 更新最長的文字
+        if frame_count % 10 == 0:  
+            text, confidence, plate_image = enhance_and_detect_with_ocr(frame, ocr)
+            if text and confidence > max_confidence:
                 max_text = text
                 max_confidence = confidence
-
-            # 保存裁切圖片
-            cropped_files = [os.path.join(output_dir, f) for f in os.listdir(output_dir)]
-
+                best_plate_image = plate_image
+        if (len(max_text) == 7):
+            max_text = max_text[:3] + '-' + max_text[3:]
+            replace_text = max_text[4:]
+            replace_text = replace_text.replace('Z' , '2')
+            max_text = max_text[:4] + replace_text
     cap.release()
-    return max_text, max_confidence, cropped_files
+    return max_text, max_confidence, best_plate_image
 
 
-def display_images_sequentially(image_paths, value_texts):
-    """以每秒間隔顯示裁切圖片"""
-    window = tk.Tk()
-    window.title("圖片與數值顯示")
-    window.geometry("800x600")
+def select_folder():
 
-    image_label = tk.Label(window)
-    image_label.pack(pady=10)
-
-    value_label = tk.Label(window, font=("Arial", 16), fg="blue")
-    value_label.pack(pady=10)
-
-    def update_image(index=0):
-        if index < len(image_paths):
-            img = Image.open(image_paths[index]).resize((320, 480))
-            photo = ImageTk.PhotoImage(img)
-            image_label.configure(image=photo)
-            image_label.image = photo
-            value_label.configure(text=f"車牌：{value_texts[index]}")
-            window.after(1000, update_image, index + 1)
-
-    update_image()
-    window.mainloop()
+    folder_path = filedialog.askdirectory(title="選擇包含影片的資料夾")
+    if folder_path:
+        process_folder(folder_path)
 
 
-def select_file():
-    """選擇單一影片進行處理"""
-    video_path = filedialog.askopenfilename(
-        title="選擇影片",
-        filetypes=[("影片檔案", "*.mp4;*.avi;*.mov")]
-    )
-    if video_path:
-        ocr_engine = initialize_ocr()
-        cropped_dir = "cropped"
-        max_text, max_confidence, cropped_files = process_video(video_path, cropped_dir, ocr_engine)
+def process_folder(folder_path):
 
-        if cropped_files:
-            display_images_sequentially(cropped_files, [max_text] * len(cropped_files))
+    global video_files, current_index
+    video_files = [os.path.join(folder_path, f) for f in os.listdir(folder_path) if f.lower().endswith(('.mp4', '.avi', '.mov'))]
+    current_index = 0
+    if video_files:
+        process_next_video()
+    else:
+        result_label.config(text="未找到任何影片")
+
+
+def process_next_video():
+
+    global current_index, video_files, ocr_engine
+
+    if current_index < len(video_files):
+        video_path = video_files[current_index]
+        detected_text, confidence, plate_image = process_video(video_path, ocr_engine)
+
+        if confidence == 0:
+            result_label.config(text=f"影片: {os.path.basename(video_path)}\n未成功辨識車牌")
+            image_label.config(image="")
+            image_label.image = None
         else:
-            print("未檢測到任何車牌。")
+            result_label.config(text=f"影片: {os.path.basename(video_path)}\n車牌號碼: {detected_text} (置信度: {confidence:.2f})")
+
+            if plate_image is not None:
+                plate_image = cv2.cvtColor(plate_image, cv2.COLOR_BGR2RGB)
+                pil_image = Image.fromarray(plate_image)
+                pil_image = pil_image.resize((320, 120))  
+                photo = ImageTk.PhotoImage(pil_image)
+                image_label.config(image=photo)
+                image_label.image = photo
+
+            existing_plates = plate_listbox.get(0, tk.END)
+            if detected_text in existing_plates:
+                index = existing_plates.index(detected_text)
+                plate_listbox.delete(index)  
+            else:
+                plate_listbox.insert(tk.END, detected_text)
+
+        current_index += 1
+        root.after(1000, process_next_video) 
+    else:
+        result_label.config(text="處理完成！")
 
 
 if __name__ == "__main__":
-    # 創建主視窗
+    # 初始化 OCR 引擎
+    ocr_engine = initialize_ocr()
+
+    # 建立主視窗
     root = tk.Tk()
-    root.title("單一影片車牌識別")
-    root.geometry("400x200")
+    root.title("車牌識別系統")
+    root.geometry("800x400")
 
-    # 添加按鈕
-    select_button = tk.Button(root, text="選擇影片進行車牌識別", command=select_file, font=("Arial", 14))
-    select_button.pack(expand=True)
+    # 左側區域
+    left_frame = tk.Frame(root)
+    left_frame.pack(side=tk.LEFT, padx=10, pady=10)
 
+    # 按鈕讓使用者選擇資料夾
+    select_button = tk.Button(left_frame, text="選擇資料夾", command=select_folder, font=("Arial", 14))
+    select_button.pack(pady=20)
+
+    # 顯示結果的 Label
+    result_label = tk.Label(left_frame, text="車牌號碼將顯示於此", font=("Arial", 12), fg="blue")
+    result_label.pack(pady=20)
+
+    # 顯示車牌圖片的 Label
+    image_label = tk.Label(left_frame)
+    image_label.pack(pady=20)
+
+    # 右側區域
+    right_frame = tk.Frame(root)
+    right_frame.pack(side=tk.RIGHT, padx=10, pady=10, fill=tk.Y)
+
+    # 車牌列表 Label
+    list_label = tk.Label(right_frame, text="已偵測車牌", font=("Arial", 14))
+    list_label.pack(pady=10)
+
+    # 車牌列表框
+    plate_listbox = tk.Listbox(right_frame, font=("Arial", 12), height=15, width=20)
+    plate_listbox.pack(pady=10)
+
+    # 啟動主迴圈
     root.mainloop()
